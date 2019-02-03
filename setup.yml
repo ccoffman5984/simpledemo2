@@ -1,0 +1,54 @@
+---
+- hosts: app_servers 
+  remote_user: ec2-user
+  become: yes
+  become_method: sudo
+
+  vars:
+    python_packages:
+      - flask
+      - gunicorn
+      - supervisor
+    local_ipv4: "{{ ansible_eth0['ipv4']['address'] }}"
+    conf_file: "/home/ec2-user/simpledemo2/supervisord.conf"
+
+  tasks:
+  - name: download pip utility
+    get_url: 
+      url: https://bootstrap.pypa.io/get-pip.py
+      dest: /tmp/get-pip.py 
+      mode: 0440
+
+  - name: install pip 
+    command: python /tmp/get-pip.py 
+
+  - name: install python modules
+    pip: 
+      name: "{{ item }}" 
+    with_items: "{{ python_packages }}"
+
+  - name: modify supervisord.conf
+    lineinfile:
+      path: "{{ conf_file }}" 
+      state: present
+      insertafter: "[program:gunicorn]"
+      line: "command=gunicorn --forwarded-allow-ips={{ item }} -b {{ local_ipv4 }}:8080 --chdir /home/ec2-user/hello_flask hello_flask:app
+"
+    with_inventory_hostnames:
+      - reverse_proxy
+
+  - name: ovewrite supervisord.conf
+    shell: "cp {{ conf_file }} /etc"
+
+  - name: manage supervisor with systemd 
+    shell: cp supervisord.service /lib/systemd/system
+    args:
+      chdir: /home/ec2-user/simpledemo2
+
+  - name: enable supervisord
+    shell: systemctl enable supervisord
+
+  - name: start supervisord
+    service:
+      name: supervisord
+      state: started

@@ -1,0 +1,9 @@
+---
+- hosts: app_servers 
+  remote_user: ec2-user
+  become: yes
+  become_method: sudo
+
+  tasks:
+  - name: ICMP ping
+    ping:

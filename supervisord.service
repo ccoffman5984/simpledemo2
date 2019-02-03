@@ -1,0 +1,9 @@
+[Unit]
+Description=supervisord service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/supervisord --configuration=/etc/supervisord.conf
+
+[Install]
+WantedBy=multi-user.target
