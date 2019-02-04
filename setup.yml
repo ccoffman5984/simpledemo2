@@ -11,6 +11,7 @@
       - supervisor
     local_ipv4: "{{ ansible_eth0['ipv4']['address'] }}"
     conf_file: "/home/ec2-user/simpledemo2/supervisord.conf"
+    init_script: "/home/ec2-user/simpledemo2/supervisord"
 
   tasks:
   - name: download pip utility
@@ -40,15 +41,18 @@
   - name: ovewrite supervisord.conf
     shell: "cp {{ conf_file }} /etc"
 
-  - name: manage supervisor with systemd 
-    shell: cp supervisord.service /lib/systemd/system
-    args:
-      chdir: /home/ec2-user/simpledemo2
+  - name: setup init script
+    shell: "cp {{ init_script }} /etc/rc.d/init.d"
+
+  - name: adjust permisssions & ownership 
+    file:
+      path: /etc/rc.d/init.d/supervisord
+      owner: root
+      group: root
+      mode: 0755 
 
   - name: enable supervisord
-    shell: systemctl enable supervisord
+    shell: chkconfig --add supervisord 
 
   - name: start supervisord
-    service:
-      name: supervisord
-      state: started
+    shell: /etc/rc.d/init.d/supervisord start 
